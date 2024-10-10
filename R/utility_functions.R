@@ -1712,7 +1712,7 @@ specify_prior_phi <- function(data = NULL,
 #' predictions$LPL_VoI
 #' }
 predict.bayesianVARs_bvar <- function(object, ahead = 1L, each = 1L, stable = TRUE,
-                        simulate_predictive = TRUE, LPL = FALSE, Y_obs = NA,
+                        simulate_predictive = TRUE, impulse_response = FALSE, LPL = FALSE, Y_obs = NA,
                         LPL_VoI = NA, ...){
 
   factor <- object$sigma_type == "factor"
@@ -1790,7 +1790,8 @@ predict.bayesianVARs_bvar <- function(object, ahead = 1L, each = 1L, stable = TR
                        Y_obs,
                        LPL_subset,
                        as.integer(VoI-1),
-                       simulate_predictive)
+                       simulate_predictive,
+                       impulse_response)
 
 
   if(LPL){

@@ -22,6 +22,8 @@ order-invariant factor structure or an order-variant cholesky structure.
 
 # Installation
 
+## From CRAN
+
 Install [CRAN](https://cran.r-project.org/package=bayesianVARs) version:
 
 ``` r
@@ -32,6 +34,24 @@ Install latest development version directly from GitHub:
 
 ``` r
 devtools::install_github("luisgruber/bayesianVARs")
+```
+
+## From Source
+
+If you have changed the C++ code you must first re-generate the R bindings using
+```r
+library(Rcpp)
+compileAttributes("./bayesianVARs", verbose=TRUE)
+```
+
+Then you can build the R source tarball using
+```bash
+R CMD build --no-build-vignettes bayesianVARs
+```
+
+Finally,
+```r
+install.packages("/full/path/to/bayesianVARs_x.x.x.tar.gz")
 ```
 
 # Usage

@@ -229,7 +229,8 @@ Rcpp::List out_of_sample(const int& each,
                          const arma::mat& Y_obs,
                          const bool& LPL_subset,
                          const arma::urowvec& VoI,
-                         const bool& simulate_predictive) {
+                         const bool& simulate_predictive,
+                         const bool& impulse_response) {
 
   const int posterior_draws = PHI.n_slices;
   const int nsave = posterior_draws*each;
@@ -257,7 +258,7 @@ Rcpp::List out_of_sample(const int& each,
   arma::vec u_vec;
   arma::mat Sigma(M,M);
   arma::mat Sigma_chol(M,M);
-  arma::cube Sigma_comp(PHI.n_rows, PHI.n_rows, each ,arma::fill::zeros);
+  arma::cube Sigma_comp(PHI.n_rows, PHI.n_rows, each);
   arma::mat Sigma_large_tmp(PHI.n_rows, PHI.n_rows);
   arma::vec logvar_pred_mean(sv_indicator.n_elem);
   arma::vec logvar_pred_variance(sv_indicator.n_elem);
@@ -362,9 +363,17 @@ Rcpp::List out_of_sample(const int& each,
                          false);
             }
           }
-          if(simulate_predictive){
+          if(simulate_predictive || impulse_response){
             arma::rowvec rand_vec(M);
-            rand_vec.imbue(R::norm_rand);
+            if (impulse_response) {
+            	// impulse response: a unit shock in the first variable at t=0
+            	// for t > 0, we assume no further shocks/innovations
+            	rand_vec.zeros();
+            	if (i == 0) rand_vec.col(0) = 1.0;
+            }
+            else {
+            	rand_vec.imbue(R::norm_rand);
+            }
             arma::mat Sigma_chol_pred = arma::chol(Sigma_large_tmp.submat(0,0,M-1,M-1));
             y_pred += rand_vec * Sigma_chol_pred;
             predictions.slice(r+j*posterior_draws).row(counter) = y_pred;//pred_mean.subvec(0,M-1) + rand_vec * Sigma_chol_pred;//y_pred;
