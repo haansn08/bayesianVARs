@@ -56,6 +56,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mypredict
+arma::cube mypredict(const arma::cube& coefficients_posterior_draws, const arma::rowvec predictors, const arma::uword ahead, const arma::uword each);
+RcppExport SEXP _bayesianVARs_mypredict(SEXP coefficients_posterior_drawsSEXP, SEXP predictorsSEXP, SEXP aheadSEXP, SEXP eachSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::cube& >::type coefficients_posterior_draws(coefficients_posterior_drawsSEXP);
+    Rcpp::traits::input_parameter< const arma::rowvec >::type predictors(predictorsSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type ahead(aheadSEXP);
+    Rcpp::traits::input_parameter< const arma::uword >::type each(eachSEXP);
+    rcpp_result_gen = Rcpp::wrap(mypredict(coefficients_posterior_draws, predictors, ahead, each));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sample_PHI_cholesky
 arma::mat sample_PHI_cholesky(const arma::mat PHI, const arma::mat& PHI_prior, const arma::mat& Y, const arma::mat& X, const arma::mat& U, const arma::mat& d_sqrt, const arma::mat& V_prior);
 RcppExport SEXP _bayesianVARs_sample_PHI_cholesky(SEXP PHISEXP, SEXP PHI_priorSEXP, SEXP YSEXP, SEXP XSEXP, SEXP USEXP, SEXP d_sqrtSEXP, SEXP V_priorSEXP) {
@@ -168,6 +182,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_bayesianVARs_bvar_cpp", (DL_FUNC) &_bayesianVARs_bvar_cpp, 21},
     {"_bayesianVARs_my_gig", (DL_FUNC) &_bayesianVARs_my_gig, 4},
+    {"_bayesianVARs_mypredict", (DL_FUNC) &_bayesianVARs_mypredict, 4},
     {"_bayesianVARs_sample_PHI_cholesky", (DL_FUNC) &_bayesianVARs_sample_PHI_cholesky, 7},
     {"_bayesianVARs_dmvnrm_arma_fast", (DL_FUNC) &_bayesianVARs_dmvnrm_arma_fast, 4},
     {"_bayesianVARs_predh", (DL_FUNC) &_bayesianVARs_predh, 6},

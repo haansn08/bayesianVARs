@@ -23,6 +23,10 @@ my_gig <- function(n, lambda, chi, psi) {
     .Call(`_bayesianVARs_my_gig`, n, lambda, chi, psi)
 }
 
+mypredict <- function(coefficients_posterior_draws, predictors, ahead, each) {
+    .Call(`_bayesianVARs_mypredict`, coefficients_posterior_draws, predictors, ahead, each)
+}
+
 sample_PHI_cholesky <- function(PHI, PHI_prior, Y, X, U, d_sqrt, V_prior) {
     .Call(`_bayesianVARs_sample_PHI_cholesky`, PHI, PHI_prior, Y, X, U, d_sqrt, V_prior)
 }
