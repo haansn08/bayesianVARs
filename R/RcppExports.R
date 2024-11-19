@@ -35,8 +35,8 @@ predh <- function(logvar_T, ahead, each, sv_mu, sv_phi, sv_sigma) {
     .Call(`_bayesianVARs_predh`, logvar_T, ahead, each, sv_mu, sv_phi, sv_sigma)
 }
 
-out_of_sample <- function(each, X_T_plus_1, PHI, U, facload, logvar_T, ahead, sv_mu, sv_phi, sv_sigma, sv_indicator, factor, LPL, Y_obs, LPL_subset, VoI, simulate_predictive) {
-    .Call(`_bayesianVARs_out_of_sample`, each, X_T_plus_1, PHI, U, facload, logvar_T, ahead, sv_mu, sv_phi, sv_sigma, sv_indicator, factor, LPL, Y_obs, LPL_subset, VoI, simulate_predictive)
+out_of_sample <- function(each, X_T_plus_1, PHI, U, facload, logvar_T, ahead, sv_mu, sv_phi, sv_sigma, sv_indicator, factor, LPL, Y_obs, LPL_subset, VoI, simulate_predictive, innovations) {
+    .Call(`_bayesianVARs_out_of_sample`, each, X_T_plus_1, PHI, U, facload, logvar_T, ahead, sv_mu, sv_phi, sv_sigma, sv_indicator, factor, LPL, Y_obs, LPL_subset, VoI, simulate_predictive, innovations)
 }
 
 insample <- function(X, PHI, U, facload, logvar, prediction, factor) {

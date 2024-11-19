@@ -229,7 +229,8 @@ Rcpp::List out_of_sample(const int& each,
                          const arma::mat& Y_obs,
                          const bool& LPL_subset,
                          const arma::urowvec& VoI,
-                         const bool& simulate_predictive) {
+                         const bool& simulate_predictive,
+                         const arma::mat& innovations) {
 
   const int posterior_draws = PHI.n_slices;
   const int nsave = posterior_draws*each;
@@ -239,6 +240,7 @@ Rcpp::List out_of_sample(const int& each,
   const int K_plus = PHI.n_rows;
   const int lags = K_plus/M;
   const bool anySV = sv_indicator.n_elem > 0;
+  const bool use_predefined_innovations = innovations.n_rows > 0;
   // const int K = lags*M;
   int factors = logvar_T.n_rows;
   factors += -M;
@@ -363,8 +365,13 @@ Rcpp::List out_of_sample(const int& each,
             }
           }
           if(simulate_predictive){
-            arma::rowvec rand_vec(M);
-            rand_vec.imbue(R::norm_rand);
+            arma::rowvec rand_vec(M, arma::fill::none);
+            if (use_predefined_innovations) {
+            	rand_vec = innovations.row(i);
+            }
+            else {
+            	rand_vec.imbue(R::norm_rand);
+            }
             arma::mat Sigma_chol_pred = arma::chol(Sigma_large_tmp.submat(0,0,M-1,M-1));
             y_pred += rand_vec * Sigma_chol_pred;
             predictions.slice(r+j*posterior_draws).row(counter) = y_pred;//pred_mean.subvec(0,M-1) + rand_vec * Sigma_chol_pred;//y_pred;

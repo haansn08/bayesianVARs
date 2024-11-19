@@ -1713,7 +1713,7 @@ specify_prior_phi <- function(data = NULL,
 #' }
 predict.bayesianVARs_bvar <- function(object, ahead = 1L, each = 1L, stable = TRUE,
                         simulate_predictive = TRUE, LPL = FALSE, Y_obs = NA,
-                        LPL_VoI = NA, ...){
+                        LPL_VoI = NA, innovations = NULL, ...){
 
   factor <- object$sigma_type == "factor"
   ahead <- sort(as.integer(ahead))
@@ -1773,6 +1773,16 @@ predict.bayesianVARs_bvar <- function(object, ahead = 1L, each = 1L, stable = TR
     Y_obs <- matrix(Y_obs, length(ahead), M)
     colnames(Y_obs) <- variables
   }
+  
+  if(is.null(innovations)){
+  	# if innovations is a zero matrix, out_of_sample generates normally distributed ones
+  	innovations <- matrix(nrow=0, ncol=0)
+  }
+  else {
+  	if(!is.matrix(innovations) || nrow(innovations) < max(ahead) || ncol(innovations) != M){
+  		stop("'innovations' must be a matrix of dimension max(ahead) times number of variables \n")
+  	}
+  }
 
   ret <- out_of_sample(each,
                        X_T_plus_1,
@@ -1790,7 +1800,8 @@ predict.bayesianVARs_bvar <- function(object, ahead = 1L, each = 1L, stable = TR
                        Y_obs,
                        LPL_subset,
                        as.integer(VoI-1),
-                       simulate_predictive)
+                       simulate_predictive,
+                       innovations)
 
 
   if(LPL){
