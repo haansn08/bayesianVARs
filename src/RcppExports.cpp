@@ -56,9 +56,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// mypredict
-arma::cube mypredict(const arma::cube& coefficients_posterior_draws, const arma::rowvec predictors, const arma::uword ahead, const arma::uword each);
-RcppExport SEXP _bayesianVARs_mypredict(SEXP coefficients_posterior_drawsSEXP, SEXP predictorsSEXP, SEXP aheadSEXP, SEXP eachSEXP) {
+// shock_propagating_predict
+arma::cube shock_propagating_predict(const arma::cube& coefficients_posterior_draws, const arma::rowvec predictors, const arma::uword ahead, const arma::uword each);
+RcppExport SEXP _bayesianVARs_shock_propagating_predict(SEXP coefficients_posterior_drawsSEXP, SEXP predictorsSEXP, SEXP aheadSEXP, SEXP eachSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -66,7 +66,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::rowvec >::type predictors(predictorsSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type ahead(aheadSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type each(eachSEXP);
-    rcpp_result_gen = Rcpp::wrap(mypredict(coefficients_posterior_draws, predictors, ahead, each));
+    rcpp_result_gen = Rcpp::wrap(shock_propagating_predict(coefficients_posterior_draws, predictors, ahead, each));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -182,7 +182,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_bayesianVARs_bvar_cpp", (DL_FUNC) &_bayesianVARs_bvar_cpp, 21},
     {"_bayesianVARs_my_gig", (DL_FUNC) &_bayesianVARs_my_gig, 4},
-    {"_bayesianVARs_mypredict", (DL_FUNC) &_bayesianVARs_mypredict, 4},
+    {"_bayesianVARs_shock_propagating_predict", (DL_FUNC) &_bayesianVARs_shock_propagating_predict, 4},
     {"_bayesianVARs_sample_PHI_cholesky", (DL_FUNC) &_bayesianVARs_sample_PHI_cholesky, 7},
     {"_bayesianVARs_dmvnrm_arma_fast", (DL_FUNC) &_bayesianVARs_dmvnrm_arma_fast, 4},
     {"_bayesianVARs_predh", (DL_FUNC) &_bayesianVARs_predh, 6},
