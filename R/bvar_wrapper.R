@@ -721,6 +721,8 @@ bvar <- function(data,
   res$datamat <- data.frame(cbind(Y, X))
   res$config <- list(draws = draws, burnin = burnin, thin = thin,
                      sv_keep = sv_keep)
+  rownames(res$sv_para) <- c("mu", "phi", "sigma")
+  
   class(res$PHI) <- c("bayesianVARs_coef", "bayesianVARs_draws")
   class(res$U) <- "bayesianVARs_draws"
   class(res$facload) <- "bayesianVARs_draws"

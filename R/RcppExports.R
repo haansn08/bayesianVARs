@@ -23,8 +23,8 @@ my_gig <- function(n, lambda, chi, psi) {
     .Call(`_bayesianVARs_my_gig`, n, lambda, chi, psi)
 }
 
-shock_propagating_predict <- function(coefficients_posterior_draws, predictors, ahead, each) {
-    .Call(`_bayesianVARs_shock_propagating_predict`, coefficients_posterior_draws, predictors, ahead, each)
+shock_propagating_predict_cpp <- function(coefficients, predictors, ahead, each, facload, predicted_idih, predicted_factorh) {
+    .Call(`_bayesianVARs_shock_propagating_predict_cpp`, coefficients, predictors, ahead, each, facload, predicted_idih, predicted_factorh)
 }
 
 sample_PHI_cholesky <- function(PHI, PHI_prior, Y, X, U, d_sqrt, V_prior) {

@@ -1,24 +1,39 @@
-> class(mod)
-[1] "bayesianVARs_bvar"
+# x should be of class bayesianVARs_bvar
 
-# construct a svdraws object because we don't have one :(
-object <- list()
-object$svlm <- FALSE
-object$meanmodel <- "none"
-object$thinning <- list(para = 1, latent = 1, time = "all")
-
-object$para <- coda::mcmc.list()
-object$latent <- coda::mcmc.list()
-number_of_sv_processes <- dim(mod$sv_para)[2]
-#for the "factor" setting
-#number_of_sv_processes = M + number of factors
-for (i in seq_len(number_of_sv_processes)) {
-	sv_para_draws <- cbind(t(mod$sv_para[,i,]), Inf, 0)
-	colnames(sv_para_draws) <- c("mu", "phi", "sigma", "nu", "rho")
-	object$para[[i]] <- coda::as.mcmc(sv_para_draws)
+as.fsvdraws <- function(x) {
+	if (x$sigma_type != "factor") {
+		stop("cannot extract fsvdraws object from non-factor model")
+	}
 	
-	sv_latent <- t(mod$logvar[,i,])
-	object$latent[[i]] <- coda::as.mcmc(sv_latent)
+	ret <- list()
+	ret$y <- x$Y
+	ret$fac <- aperm(x$fac, c(2,1,3))
+	ret$facload <- x$facload
+	ret$para <- x$sv_para
+	ret$logvar <- x$logvar
+	ret$config <- x$config
+	class(ret) <- "fsvdraws"
+	
+	ret
 }
 
-class(object) <- c("svdraws")
+shock_propagating_predict <- function(x, ahead=1, each=1) {
+	M <- ncol(x$Y)
+	predictors <- as.numeric(x$datamat[nrow(x$datamat), 1:(x$lags*M)])
+  	if(x$intercept) predictors <- c(predictors, 1)
+  	
+  	#predict factor specific and idiosyncratic variances for the factor model
+  	h_pred <- factorstochvol::predh(as.fsvdraws(x), ahead=seq_len(ahead), each=each)
+	
+	ret <- shock_propagating_predict_cpp(
+		x$PHI,
+		predictors,
+		ahead,
+		each,
+		x$facload,
+		h_pred$idih,
+		h_pred$factorh
+	)
+	dimnames(ret)[[2]] <- dimnames(x$Y)[[2]]
+	ret
+}
