@@ -3,6 +3,16 @@
 using namespace Rcpp;
 using namespace arma;
 
+inline void shift_and_insert(
+	arma::mat& X, //the columns of X should be y1,y2,y3, y1.l1,y2.l1,y3.l1,...,1
+	const arma::mat& new_y //what to insert in y1,y2,y3
+) {
+	for (uword i = X.n_cols-2; new_y.n_cols <= i; i--) {
+		X.col(i) = X.col(i-new_y.n_cols);
+	}
+	X.head_cols(new_y.n_cols) = new_y;
+}
+
 // [[Rcpp::export]]
 arma::cube shock_propagating_predict_cpp(
 	const arma::cube& coefficients, //rows: lagged variables + intercept, columns: variables, slices: draws
@@ -46,9 +56,9 @@ arma::cube shock_propagating_predict_cpp(
 				predictions.slice(j + r * each).row(t) = new_predictions.row(j);
 			}
 			
-			// make predictions the new predictors keeping the intercept
-			current_predictors.slice(r).head_cols(n_variables) = new_predictions;
-		}		
+			// shift everything and make predictions the new predictors at lag zero
+			shift_and_insert(current_predictors.slice(r), new_predictions);
+		}
 	}
 	
 	return predictions;
