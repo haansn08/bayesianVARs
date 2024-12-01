@@ -56,20 +56,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// shock_propagating_predict_cpp
-arma::cube shock_propagating_predict_cpp(const arma::cube& coefficients, const arma::rowvec predictors, const arma::uword ahead, const arma::uword each, const arma::cube& facload, const arma::cube& predicted_idih, const arma::cube& predicted_factorh);
-RcppExport SEXP _bayesianVARs_shock_propagating_predict_cpp(SEXP coefficientsSEXP, SEXP predictorsSEXP, SEXP aheadSEXP, SEXP eachSEXP, SEXP facloadSEXP, SEXP predicted_idihSEXP, SEXP predicted_factorhSEXP) {
+// irf_cpp
+arma::cube irf_cpp(const arma::cube& coefficients, const arma::rowvec& shock, const arma::uword ahead);
+RcppExport SEXP _bayesianVARs_irf_cpp(SEXP coefficientsSEXP, SEXP shockSEXP, SEXP aheadSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::cube& >::type coefficients(coefficientsSEXP);
-    Rcpp::traits::input_parameter< const arma::rowvec >::type predictors(predictorsSEXP);
+    Rcpp::traits::input_parameter< const arma::rowvec& >::type shock(shockSEXP);
     Rcpp::traits::input_parameter< const arma::uword >::type ahead(aheadSEXP);
-    Rcpp::traits::input_parameter< const arma::uword >::type each(eachSEXP);
-    Rcpp::traits::input_parameter< const arma::cube& >::type facload(facloadSEXP);
-    Rcpp::traits::input_parameter< const arma::cube& >::type predicted_idih(predicted_idihSEXP);
-    Rcpp::traits::input_parameter< const arma::cube& >::type predicted_factorh(predicted_factorhSEXP);
-    rcpp_result_gen = Rcpp::wrap(shock_propagating_predict_cpp(coefficients, predictors, ahead, each, facload, predicted_idih, predicted_factorh));
+    rcpp_result_gen = Rcpp::wrap(irf_cpp(coefficients, shock, ahead));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -185,7 +181,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_bayesianVARs_bvar_cpp", (DL_FUNC) &_bayesianVARs_bvar_cpp, 21},
     {"_bayesianVARs_my_gig", (DL_FUNC) &_bayesianVARs_my_gig, 4},
-    {"_bayesianVARs_shock_propagating_predict_cpp", (DL_FUNC) &_bayesianVARs_shock_propagating_predict_cpp, 7},
+    {"_bayesianVARs_irf_cpp", (DL_FUNC) &_bayesianVARs_irf_cpp, 3},
     {"_bayesianVARs_sample_PHI_cholesky", (DL_FUNC) &_bayesianVARs_sample_PHI_cholesky, 7},
     {"_bayesianVARs_dmvnrm_arma_fast", (DL_FUNC) &_bayesianVARs_dmvnrm_arma_fast, 4},
     {"_bayesianVARs_predh", (DL_FUNC) &_bayesianVARs_predh, 6},
