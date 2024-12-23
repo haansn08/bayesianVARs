@@ -132,9 +132,10 @@ vec calculate_sign_restriction_scores(
 arma::cube find_rotation_cpp(
 	const arma::field<arma::cube>& parameter_transformations, //each field element: rows: transformation size, cols: variables, slices: draws
 	const arma::field<Rcpp::NumericMatrix>& restriction_specs, //each field element: rows: transformation size, cols: variables
+	const Rcpp::Nullable<Rcpp::NumericMatrix> preserve_diag_logs_ = R_NilValue, //restrict rotation P to PDP' = D; rows: log diagonal entries of D, cols: draws
 	const double tolerance = 0.0
 ) {
-	//algorithm from RUBIO-RAMÍREZ ET AL. (doi: 10.1111/j.1467-937X.2009.00578.x)
+	//based on RUBIO-RAMÍREZ ET AL. (doi: 10.1111/j.1467-937X.2009.00578.x)
 
 	if (restriction_specs.n_elem != parameter_transformations.n_elem) {
 		throw std::logic_error("Number of restrictions does not match number of parameter transformations.");
@@ -142,6 +143,10 @@ arma::cube find_rotation_cpp(
 
 	const uword n_variables = parameter_transformations(0).n_cols;
 	const uword n_posterior_draws = parameter_transformations(0).n_slices;
+	
+	mat preserve_diag_logs;
+	if (preserve_diag_logs_.isNotNull()) preserve_diag_logs = Rcpp::as<mat>(preserve_diag_logs_);
+
 	arma::cube rotation(n_variables, n_variables, n_posterior_draws, arma::fill::none);
 
 	//field rows: tranformations, field cols: cols of the transformation
@@ -157,27 +162,44 @@ arma::cube find_rotation_cpp(
 	}
 
 	for (uword r = 0; r < n_posterior_draws; r++) {
-		for (uword j = 0; j < n_variables; j++) {
-			arma::mat Q_tilde(rotation.slice(r).head_cols(j).t());
-			for (uword i = 0; i < parameter_transformations.n_elem; i++) {
-				Q_tilde.insert_rows(0, zero_restrictions(i, j) * parameter_transformations(i).slice(r));
+		mat D_diff(n_variables, n_variables, arma::fill::ones), D_diff_inv(n_variables, n_variables, arma::fill::ones);
+		if (preserve_diag_logs.n_elem > 0) {
+			for (uword j = 0; j < n_variables; j++) {
+				D_diff.col(j) = (preserve_diag_logs(j,r) - preserve_diag_logs.col(r))/2;
 			}
-			arma::mat nullspace_Q_tilde = arma::null(Q_tilde, tolerance);
-			if (nullspace_Q_tilde.n_cols == 0) {
+			D_diff_inv = exp(-D_diff);
+			D_diff = exp(D_diff);
+		}
+
+		for (uword j = 0; j < n_variables; j++) {
+			//make sure the next column vector selected is orthogonal to all previous ones
+			arma::mat Q_tilde(rotation.slice(r).head_cols(j).t());
+			Q_tilde %= D_diff.head_cols(j).t();
+
+			for (uword i = 0; i < parameter_transformations.n_elem; i++) {
+				mat Q_tilde_i = zero_restrictions(i, j) * parameter_transformations(i).slice(r);
+				Q_tilde_i.each_row() %= D_diff_inv.col(j).t();
+				Q_tilde.insert_rows(0, Q_tilde_i);
+			}
+
+			arma::mat p_j_candidate_space = arma::null(Q_tilde, tolerance);
+			if (p_j_candidate_space.n_cols == 0) {
 				throw std::logic_error("Could not satisfy restrictions. Increase the tolerance for approximate results.");
 			}
+			p_j_candidate_space.each_col() %= D_diff_inv.col(j);
 
 			colvec p_j;
 			if (n_sign_restrictions(j) > 0) {
-				//find the vector in the nullspace of Q which scores best in the sign restrictions
-				vec sign_restriction_scores(nullspace_Q_tilde.n_cols, arma::fill::zeros);
+				//find the vector p_j candidate which scores best in the sign restrictions
+				//TODO: consider all linear combinations to be candidates instead just the basis vectors?
+				vec sign_restriction_scores(p_j_candidate_space.n_cols, arma::fill::zeros);
 				for (uword i = 0; i < parameter_transformations.n_elem; i++) {
 					const NumericMatrix::ConstColumn column_restriction_spec = restriction_specs(i).column(j);
-					const mat rotated_params = parameter_transformations(i).slice(r) * nullspace_Q_tilde;
+					const mat rotated_params = parameter_transformations(i).slice(r) * p_j_candidate_space;
 					sign_restriction_scores += calculate_sign_restriction_scores(column_restriction_spec, rotated_params);
 				}
 				uword index_of_best_score = abs(sign_restriction_scores).index_max();
-				p_j = nullspace_Q_tilde.col(index_of_best_score);
+				p_j = p_j_candidate_space.col(index_of_best_score);
 				if (sign_restriction_scores[index_of_best_score] < 0) {
 					p_j = -p_j;
 				}
@@ -186,7 +208,7 @@ arma::cube find_rotation_cpp(
 				//any vector from the null space is fine
 				//vector with corresponding to the smallest singular value should be the last one
 				//however this is an not guranteed by the public armadillo API!
-				p_j = nullspace_Q_tilde.col(nullspace_Q_tilde.n_cols - 1);
+				p_j = p_j_candidate_space.col(p_j_candidate_space.n_cols - 1);
 			}
 
 			rotation.slice(r).col(j) = p_j;

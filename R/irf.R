@@ -106,9 +106,11 @@ find_rotation <- function(
 ) {
 	parameter_transformations <- list()
 	restrictions <- list()
+	preserve_diag_logs <- NULL
 	if (x$sigma_type == "factor") {
 		parameter_transformations <- list("facload" = x$facload)
 		restrictions <- list("facload" = restrictions_facload)
+		preserve_diag_logs <- x$logvar[nrow(x$logvar),1:ncol(x$facload),]
 	}
 	else if (x$sigma_type == "cholesky") {
 		parameter_transformations <- compute_parameter_transformations(
@@ -136,6 +138,7 @@ find_rotation <- function(
 	find_rotation_cpp(
 		parameter_transformations = parameter_transformations,
 		restriction_specs = restrictions[lengths(restrictions) > 0],
+		preserve_diag_logs_ = preserve_diag_logs,
 		tolerance = tolerance
 	)
 }
