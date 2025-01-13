@@ -134,20 +134,87 @@ mat construct_sign_restriction (const NumericMatrix::ConstColumn& spec) {
 	return sign_restriction_matrix;
 }
 
+//tries to return an non-zero vector x such that 0 <= A*x
+//cf. https://people.math.carleton.ca/~kcheung/math/notes/MATH5801/02/2_1_fourier_motzkin.html#FM
+vec fourier_motzkin (const mat& A, const double tol=1e-6) {
+	if (A.n_elem == 0) {
+		// no restrictions left, return e_1 which is non-zero or empty
+		return vec(A.n_cols, fill::eye);
+	}
+	
+	// eliminate the last column
+	vec a = A.col(A.n_cols-1);
+	a.clean(tol);
+	
+	// trivial case: only one inequality left
+	if (A.n_rows == 1)  {
+		if (a(0) == 0 && !A.row(0).is_zero(tol)) {
+			mat smaller_A = A.head_cols(A.n_cols-1);
+			vec smaller_x = fourier_motzkin(smaller_A);
+			return join_vert(smaller_x, vec({1}));
+		} else {
+			vec x(A.n_cols, fill::zeros);
+			x(A.n_cols-1) = std::copysign(1, a(0));
+			return x;
+		}
+	}
+	
+	const uvec lower_bounds = find(a > 0);
+	const uvec upper_bounds = find(a < 0);
+	const uvec carry_over   = find(a == 0);
+	a(carry_over).ones(); //don't divide by zero later
+	
+	mat smaller_A(carry_over.n_elem+lower_bounds.n_elem*upper_bounds.n_elem, A.n_cols);
+	smaller_A.head_rows(carry_over.n_elem) = A.rows(carry_over);
+	uword i = carry_over.n_elem;
+	for (uword l : lower_bounds) for (uword u : upper_bounds)
+		smaller_A.row(i++) = A.row(l)/a(l) - A.row(u)/a(u);
+	//remove last column which must be zero now
+	smaller_A.shed_col(smaller_A.n_cols-1);
+	// remove zero rows
+	for (uword i = 0; i < smaller_A.n_rows;) {
+		if (smaller_A.row(i).is_zero(tol)) {
+			smaller_A.shed_row(i);
+		} else {
+			i++;
+		}
+	}
+	
+	//solve the smaller system
+	const vec smaller_x = fourier_motzkin(smaller_A);
+	
+	// multiply with the smaller solution and bring to the left hand side
+	vec b;
+	if (A.n_cols > 1) {
+		b = -(A.head_cols(A.n_cols-1)*smaller_x)/a;
+	} else {
+		b = vec(A.n_rows, fill::zeros);
+	}
+	
+	// makes sure (lower <= upper) is satisfied if one bound is unrestricted!
+	const double magnitude = std::max(abs(b).max(), 1.0);
+	const double lower = lower_bounds.n_elem>0 ? b.rows(lower_bounds).max() : -magnitude;
+	const double upper = upper_bounds.n_elem>0 ? b.rows(upper_bounds).min() : magnitude;
+	const double must_be_less_than_zero = carry_over.n_elem>0 ? b.rows(carry_over).max() : 0;
+	if ( tol+upper < lower || tol < must_be_less_than_zero)
+		throw std::logic_error("system is infeasible. this is a bug.");
+	
+	// x must be within [lower, upper]
+	// choose x to be the bound which is further away from zero
+	const double x = (std::abs(upper) >= std::abs(lower)) ? upper : lower;
+	return join_vert(smaller_x, vec({x}));
+}
+
+
 // [[Rcpp::export]]
 arma::cube find_rotation_cpp(
 	const arma::field<arma::cube>& parameter_transformations, //each field element: rows: transformation size, cols: variables, slices: draws
 	const arma::field<Rcpp::NumericMatrix>& restriction_specs, //each field element: rows: transformation size, cols: variables
-	const double tolerance = 0.0,
-	const double sign_epsilon = 1e-2
+	const double tol = 1e-6
 ) {
 	//algorithm from RUBIO-RAMÍREZ ET AL. (doi: 10.1111/j.1467-937X.2009.00578.x)
-
 	if (restriction_specs.n_elem != parameter_transformations.n_elem) {
 		throw std::logic_error("Number of restrictions does not match number of parameter transformations.");
-	}
-	if (!(sign_epsilon > 0)) {
-		throw std::logic_error("sign_epsilon must be a positive number");
 	}
 
 	const uword n_variables = parameter_transformations(0).n_cols;
@@ -169,41 +236,28 @@ arma::cube find_rotation_cpp(
 	}
 
 	for (uword r = 0; r < n_posterior_draws; r++) {
-		for (uword j = 0; j < n_variables; j++) {
-			colvec p_j; // find the j-th column of the rotation matrix
-			
-			mat Q_zero(rotation.slice(r).head_cols(j).t());
+		for (uword j = 0; j < n_variables; j++) {	
+			// add orthogonality to previous vector and zero restrictions
+			mat Q(rotation.slice(r).head_cols(j).t());
 			for (uword i = 0; i < parameter_transformations.n_elem; i++) {
-				Q_zero.insert_rows(0, zero_restrictions(i, j) * parameter_transformations(i).slice(r));
+				Q.insert_rows(0, zero_restrictions(i, j) * parameter_transformations(i).slice(r));
 			}
-			mat nullspace_Q_zero;
-			if (Q_zero.n_rows == 0) {
-				nullspace_Q_zero = mat(n_variables, n_variables, fill::eye);
-			} else {
-				nullspace_Q_zero = null(Q_zero, tolerance);
-				if (nullspace_Q_zero.n_cols == 0) {
-					throw std::logic_error("Could not satisfy zero restrictions. Increase the tolerance for approximate results.");
-				}
-			}
-
+			// the inequalities must be exact
+			Q.insert_rows(0, -Q);
+			
+			//add sign restrictions	
 			if (n_sign_restrictions(j) > 0) {
-				//find the vector in the nullspace of Q_zero which satisfies the sign restrictions
-				mat Q_sign(0, n_variables);
 				for (uword i = 0; i < parameter_transformations.n_elem; i++) {
-					Q_sign.insert_rows(0, sign_restrictions(i, j) * parameter_transformations(i).slice(r));
+					Q.insert_rows(0, sign_restrictions(i, j) * parameter_transformations(i).slice(r));
 				}
-				const vec small_positive_vector(Q_sign.n_rows, fill::value(sign_epsilon));
-				p_j = nullspace_Q_zero * solve(Q_sign * nullspace_Q_zero, small_positive_vector);
-				p_j = normalise(p_j);
 			}
-			else {
-				//any vector from the null space is fine
-				//vector with corresponding to the smallest singular value should be the last one
-				//however this is an not guranteed by the public armadillo API!
-				p_j = nullspace_Q_zero.col(nullspace_Q_zero.n_cols - 1);	
+			
+			// find the j-th column of the rotation matrix s.t. 0 <= Q * p_j
+			colvec p_j = fourier_motzkin(Q, tol);
+			if (p_j.is_zero(tol)) {
+				throw std::logic_error("Restrictions could not be satisfied");
 			}
-
-			rotation.slice(r).col(j) = p_j;
+			rotation.slice(r).col(j) = normalise(p_j);
 		}
 	}
 	return rotation;

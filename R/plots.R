@@ -628,10 +628,11 @@ plot.bayesianVARs_predict <- function(x, dates = NULL, vars = "all", ahead = NUL
 plot.bayesianVARs_irf <- function(x, vars = "all", quantiles = c(0.05,0.25,0.5,0.75,0.95), ...){
   n_ahead <- dim(x)[3]
   n_shocks <- ncol(x)
+  n_vars <- nrow(x)
   var_names <- rownames(x)
 
   if(length(vars)==1L & any(vars == "all")){
-    vars <- 1:ncol(x)
+    vars <- 1:n_vars
   }else if(is.character(vars)){
     if(any(base::isFALSE(vars %in% colnames(x)))){
       stop("Elements of 'vars' must coincide with 'colnames(x)'!")

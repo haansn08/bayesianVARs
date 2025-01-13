@@ -106,7 +106,7 @@ find_rotation <- function(
 	restrictions_B0 = NULL,
 	restrictions_structural_coeff = NULL,
 	restrictions_long_run_ir = NULL,
-	tolerance = 0.0
+	tolerance = 1e-6
 ) {
 	if (x$sigma_type == "factor") {
 		forbidden_restrictions <- c(
@@ -153,6 +153,6 @@ find_rotation <- function(
 	find_rotation_cpp(
 		parameter_transformations = parameter_transformations,
 		restriction_specs = restrictions[lengths(restrictions) > 0],
-		tolerance = tolerance
+		tol = tolerance
 	)
 }
