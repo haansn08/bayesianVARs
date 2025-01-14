@@ -171,14 +171,6 @@ vec fourier_motzkin (const mat& A, const double tol=1e-6) {
 		smaller_A.row(i++) = A.row(l)/a(l) - A.row(u)/a(u);
 	//remove last column which must be zero now
 	smaller_A.shed_col(smaller_A.n_cols-1);
-	// remove zero rows
-	for (uword i = 0; i < smaller_A.n_rows;) {
-		if (smaller_A.row(i).is_zero(tol)) {
-			smaller_A.shed_row(i);
-		} else {
-			i++;
-		}
-	}
 	
 	//solve the smaller system
 	const vec smaller_x = fourier_motzkin(smaller_A);
