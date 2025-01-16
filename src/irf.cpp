@@ -188,7 +188,7 @@ vec fourier_motzkin (const mat& A, const double tol=1e-6) {
 	const double lower = lower_bounds.n_elem>0 ? b.rows(lower_bounds).max() : -magnitude;
 	const double upper = upper_bounds.n_elem>0 ? b.rows(upper_bounds).min() : magnitude;
 	const double must_be_less_than_zero = carry_over.n_elem>0 ? b.rows(carry_over).max() : 0;
-	if ( tol+upper < lower || tol < must_be_less_than_zero)
+	if ( lower/upper > 1+tol || tol < must_be_less_than_zero)
 		throw std::logic_error("system is infeasible. this is a bug.");
 	
 	// x must be within [lower, upper]
